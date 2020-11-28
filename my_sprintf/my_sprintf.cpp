@@ -11,7 +11,7 @@
 //#define va_arg(list, type)    (*(type *)((list += sizeof(type)) - sizeof(type)))
 
 char* convert(char* buff, int size, unsigned int num, int base);
-void my_sprintf(char* buff, int size, const char *str, ...);
+int my_sprintf(char* buff, int size, const char *str, ...);
 
 void itox(unsigned int val, char* buff);
 int GetFloatPoint(float, int);
@@ -22,11 +22,11 @@ int GetNumBefore(char** str);
 
 int main()
 {
-	char buff[40];
+	char buff[200];
 	char* p;
 	memset(buff, 0, sizeof(buff));
 		
-	my_sprintf(buff, sizeof(buff), " String1:%s Hex=%04x Float = %10.2f Hex=%8.4x Val = %8d ", "qwerty",123, -123.678, 300,123);
+	int num = my_sprintf(buff, sizeof(buff), " String1:%s Hex=%04x Float = %10.4f Hex=%8.4x Val = %8d ", "qwerty",123, -123.6783, 300,123);
 
 	return 0;
 }
@@ -38,7 +38,7 @@ int main()
 * @param[in]	 : Pointer to parametrs string
 * @retval        : None
 */
-void my_sprintf(char* buff, int size, const char *str, ...)
+int my_sprintf(char* buff, int size, const char *str, ...)
 {
 	char* p;
 	bool flag = false;
@@ -162,7 +162,10 @@ void my_sprintf(char* buff, int size, const char *str, ...)
 			buff[i++] = *(str - 1);
 			buff[i] = 0;
 		}
+		
 	}
+
+	return i-1;
 }
 
 /**
@@ -183,11 +186,19 @@ char* convert(char* buff, int size, unsigned int num, int base)
 		p = &buff[size - 1];
 		*p = '\0';
 
-		while (num != 0)
+		if(num != 0)
 		{
-			*--p = "0123456789abcdef"[num%base];
-			num /= base;
+            while (num != 0)
+            {
+                *--p = "0123456789ABCDEF"[num%base];
+                num /= base;
+            }
 		}
+		else
+		{
+		    *--p  = '0';
+		}
+
 		return p;
 	}
 	else
@@ -242,6 +253,14 @@ char* itoa(char* buff, int size, int val)
 	return p;
 }
 
+char* utoa(char* buff, int size, unsigned int val)
+{
+    char *p;
+
+    p = convert(buff, size, val, 10);
+    return p;
+}
+
 /**
 * @brief		 : Get part of float before point
 * @param[in]     : Float value
@@ -249,8 +268,9 @@ char* itoa(char* buff, int size, int val)
 * @retval        : Decimal String of the value
 */
 
-int GetFloatPoint(float val, int digits)
+int FloatPartToInt(float val, int digits)
 {
+    int i, factor;
 	int  num = (int)val;
 	if (num < 0)
 	{
@@ -258,13 +278,34 @@ int GetFloatPoint(float val, int digits)
 		val = val *(-1);
 	}
 
-	while (digits-- >0)
-	{
-		num = num * 10;
-		val = val * 10;
-	}
-	return val - num;
+	if(digits == 0)
+	    digits = 6;
+	for (i = 0, factor = 10; i < digits - 1; i++, factor *= 10);
+
+	//num = num * factor;
+	val = val * factor;
+	return val;
 }
+
+char* IntToStrLeadZero(char* buff,int size, int val, int digits)
+{
+    char *p;
+
+    p = &buff[size - 1];
+   *p = '\0';
+
+    if(digits == 0)
+        digits = 7;
+    while (val && digits-- > 0 )
+    {
+        *--p = (val%10) + '0';
+        val = val/10;
+    }
+
+    return p;
+}
+
+
 /**
 * @brief		 : Convert float value to string
 * @param[in]     : float value
@@ -277,8 +318,9 @@ char* ftoa(char* buff, int size, float val, int digits)
 	char* p;
 	char* q;
 
-	p = itoa(buff, size, GetFloatPoint(val, digits));
-	*--p = '.';
+	//p = itoa(buff, size, GetFloatPoint(val, digits));
+	p = IntToStrLeadZero(buff,size, FloatPartToInt(val,digits), digits);
+  	*--p = '.';
 	q = itoa(buff, p - &buff[0], (int)val);
 	
 	strcat(q, p);
