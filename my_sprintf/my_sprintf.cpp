@@ -1,4 +1,5 @@
 
+#define _CRT_NONSTDC_NO_WARNINGS	1
 
 #include <string.h>
 #include <stdio.h>
@@ -18,15 +19,17 @@ int GetFloatPoint(float, int);
 char* itoa(char* buff, int size, int val);
 char* ftoa(char* buff, int size, float val, int digits);
 int GetNumBefore(char** str);
-
+char* FractionalPartToStr(char* , int , int , int );
 
 int main()
 {
 	char buff[200];
-	char* p;
+	int num;
+	//char* p;
 	memset(buff, 0, sizeof(buff));
 		
-	int num = my_sprintf(buff, sizeof(buff), " String1:%s Hex=%04x Float = %10.4f Hex=%8.4x Val = %8d ", "qwerty",123, -123.6783, 300,123);
+	num = my_sprintf(buff, sizeof(buff), " String1: %s Hex=%04x Float = %3.4f Hex=%8.4x Val = %8d Float1 = %3.5f ", "qwerty",123, -123.0783, 300, 123, -0.01234);
+	//num = my_sprintf(buff, sizeof(buff), "Float = %3.4f Float1 = %3.3f ", -123.0783, -0.01234);
 
 	return 0;
 }
@@ -71,7 +74,7 @@ int my_sprintf(char* buff, int size, const char *str, ...)
 				//p = convert(temp, sizeof(temp) , *(unsigned int*)argAddr, 16);
 				p = convert(temp, sizeof(temp), va_arg(list, unsigned int), 16);
 			
-				len = strlen(p);
+				len = (unsigned char)strlen(p);
 
 				if (!flag)
 				{
@@ -101,7 +104,7 @@ int my_sprintf(char* buff, int size, const char *str, ...)
 
 				//p = itoa(temp, sizeof(temp), *(unsigned int*)argAddr);
 				p = itoa(temp, sizeof(temp), va_arg(list, unsigned int));
-				len = strlen(p);
+				len = (unsigned char)strlen(p);
 
 				num1 -= len;
 				if (num1 < 0) num1 = 0;
@@ -119,7 +122,7 @@ int my_sprintf(char* buff, int size, const char *str, ...)
 				
 				//p = (char*)*argAddr;
 				p = va_arg(list,char*);
-				len = strlen(p);
+				len = (unsigned char)strlen(p);
 				
 				num1 -= len;
 				if (num1 < 0) num1 = 0;
@@ -139,9 +142,9 @@ int my_sprintf(char* buff, int size, const char *str, ...)
 				
 				//float v = *(double*)argAddr;
 
-				float v = va_arg(list, double);
+				float v = (float)va_arg(list, double);
 				p = ftoa(temp, sizeof(temp), v, num2);
-				len = strlen(p);
+				len = (unsigned char)strlen(p);
 
 				num1 -= len;
 				if (num1 < 0) num1 = 0;
@@ -268,23 +271,46 @@ char* utoa(char* buff, int size, unsigned int val)
 * @retval        : Decimal String of the value
 */
 
-int FloatPartToInt(float val, int digits)
+char* FractionalPartToStr(char* buff, int size, float val, int digits)
 {
-    int i, factor;
+    int i =0, factor = 10;
 	int  num = (int)val;
-	if (num < 0)
+
+	int sub;
+
+	char* p;
+
+	 p = &buff[size - 1]; // Get end of buffer
+	*p = '\0';		      // Set End of string
+
+	// convert negartive val to positive
+	if (val < 0)
 	{
 		num *= -1;
 		val = val *(-1);
 	}
 
+	// set default numbers of fractinal part  after point if it is not defined
 	if(digits == 0)
 	    digits = 6;
-	for (i = 0, factor = 10; i < digits - 1; i++, factor *= 10);
+	
+	// convert fractional part of float to string
+	
+	while (i++ < digits)
+	{
+		val = val * factor; // val = 1230.783 -> 1230.783
+		num = num * factor; // val = 1230	  -> 1230
 
-	//num = num * factor;
-	val = val * factor;
-	return val;
+		sub = val - num;	// 12307.83 - 12300 = 7
+
+		*(p - digits)= sub + '0'; // 0x37 '7' -> buff from end of the buffer
+		p++;
+		num += sub;	// add 7 for next cycle	
+		
+	}
+	
+	// return string of the buffer from end ".0783"
+	return  &buff[size - 1] - digits;
 }
 
 char* IntToStrLeadZero(char* buff,int size, int val, int digits)
@@ -296,6 +322,7 @@ char* IntToStrLeadZero(char* buff,int size, int val, int digits)
 
     if(digits == 0)
         digits = 7;
+
     while (val && digits-- > 0 )
     {
         *--p = (val%10) + '0';
@@ -304,7 +331,6 @@ char* IntToStrLeadZero(char* buff,int size, int val, int digits)
 
     return p;
 }
-
 
 /**
 * @brief		 : Convert float value to string
@@ -318,24 +344,19 @@ char* ftoa(char* buff, int size, float val, int digits)
 	char* p;
 	char* q;
 
-	//p = itoa(buff, size, GetFloatPoint(val, digits));
-	p = IntToStrLeadZero(buff,size, FloatPartToInt(val,digits), digits);
+	p = FractionalPartToStr(buff, size, val, digits);
+	
   	*--p = '.';
 	q = itoa(buff, p - &buff[0], (int)val);
-	
+
+	if (val > -1 && val < 0 )
+	{
+		*--q = '-';
+	}
+
 	strcat(q, p);
 	return q;
-
 }
 
 
-//char* my_strcat(char *dest, const char *src)
-//{
-//	char *rdest = dest;
-//
-//	while (*dest) dest++;
-//	while (*dest++ = *src++);
-//
-//	return rdest;
-//}
 
